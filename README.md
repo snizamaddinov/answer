@@ -28,6 +28,29 @@ docker run -d -p 9080:80 -v answer-data:/data --name answer apache/answer:2.0.0
 
 For more information, see [Installation](https://answer.apache.org/docs/installation).
 
+### Running your customized source with docker compose
+
+Use this when you want your local code changes to be used by the running container.
+
+```bash
+# from the project root
+docker compose up -d --build
+```
+
+Open `http://localhost:9080`.
+
+For updates after code changes:
+
+```bash
+docker compose restart answer
+```
+
+To stop:
+
+```bash
+docker compose down
+```
+
 ### Plugins
 
 Answer provides a plugin system for developers to create custom plugins and expand Answer’s features. You can find the [plugin documentation here](https://answer.apache.org/community/plugins).

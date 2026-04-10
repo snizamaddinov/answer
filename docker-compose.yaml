@@ -15,15 +15,31 @@
 # specific language governing permissions and limitations
 # under the License.
 
-version: "3"
 services:
   answer:
-    image: apache/answer
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: golang-builder
+    working_dir: /workspace
+    command: >
+      /bin/bash -lc "cd ui && pnpm pre-install && pnpm build && cd /workspace &&
+      go build -tags 'bindata timetzdata sqlite sqlite_unlock_notify' -o /usr/bin/answer ./cmd/answer &&
+      mkdir -p /data/uploads /data/i18n &&
+      cp -r i18n/*.yaml /data/i18n &&
+      /usr/bin/answer init -C /data/ &&
+      /usr/bin/answer upgrade -C /data/ &&
+      /usr/bin/answer run -C /data/"
     ports:
       - '9080:80'
     restart: on-failure
     volumes:
+      - ./:/workspace
       - answer-data:/data
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
 
 volumes:
   answer-data:
+  go-mod-cache:
+  go-build-cache:

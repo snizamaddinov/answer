@@ -468,7 +468,7 @@ func (us *UserService) UserRegisterByEmail(ctx context.Context, registerUserInfo
 		return nil, errFields, err
 	}
 	userInfo.IPInfo = registerUserInfo.IP
-	userInfo.MailStatus = entity.EmailStatusToBeVerified
+	userInfo.MailStatus = entity.EmailStatusAvailable
 	userInfo.Status = entity.UserStatusAvailable
 	userInfo.LastLoginDate = time.Now()
 	err = us.userRepo.AddUser(ctx, userInfo)
@@ -478,19 +478,10 @@ func (us *UserService) UserRegisterByEmail(ctx context.Context, registerUserInfo
 	if err := us.userNotificationConfigService.SetDefaultUserNotificationConfig(ctx, []string{userInfo.ID}); err != nil {
 		log.Errorf("set default user notification config failed, err: %v", err)
 	}
-
-	// send email
-	data := &schema.EmailCodeContent{
-		Email:  registerUserInfo.Email,
-		UserID: userInfo.ID,
+	// Marking new users as active should also grant the normal "user activated" activity.
+	if err := us.userActivity.UserActive(ctx, userInfo.ID); err != nil {
+		log.Errorf("set user active activity failed, err: %v", err)
 	}
-	code := token.GenerateToken()
-	verifyEmailURL := fmt.Sprintf("%s/users/account-activation?code=%s", us.getSiteUrl(ctx), code)
-	title, body, err := us.emailService.RegisterTemplate(ctx, verifyEmailURL)
-	if err != nil {
-		return nil, nil, err
-	}
-	go us.emailService.SendAndSaveCode(ctx, userInfo.ID, userInfo.EMail, title, body, code, data.ToJSONString())
 
 	roleID, err := us.userRoleService.GetUserRole(ctx, userInfo.ID)
 	if err != nil {
